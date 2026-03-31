@@ -1,0 +1,76 @@
+# =========================
+# GENERAL
+# =========================
+.DS_Store
+Thumbs.db
+*.log
+
+# Environment variables (IMPORTANT)
+.env
+.env.*
+!.env.example
+
+# =========================
+# NODE + EXPRESS (BACKEND)
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build / output
+dist/
+build/
+
+# Logs
+logs/
+*.log
+
+# Temp files
+tmp/
+temp/
+
+# Coverage
+coverage/
+
+# =========================
+# REACT FRONTEND
+# =========================
+frontend/node_modules/
+frontend/build/
+frontend/.env
+
+# =========================
+# MICROSERVICES (if using services folder)
+# =========================
+services/*/node_modules/
+services/*/dist/
+services/*/build/
+services/*/.env
+
+# =========================
+# DATABASE (MySQL)
+# =========================
+*.sql
+*.sqlite
+*.db
+dump/
+backup/
+
+# =========================
+# IDE / EDITOR
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+
+# =========================
+# OPTIONAL (Docker)
+# =========================
+docker-compose.override.yml

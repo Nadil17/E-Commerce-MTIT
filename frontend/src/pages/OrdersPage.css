@@ -1,0 +1,89 @@
+.orders-list { display: flex; flex-direction: column; gap: 12px; }
+
+.order-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  animation: fadeUp 0.4s ease both;
+  transition: border-color 0.2s;
+}
+.order-card:hover { border-color: #3a3a50; }
+
+.order-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  cursor: pointer;
+  gap: 16px;
+}
+
+.order-left { flex: 1; }
+.order-number {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.order-date { font-size: 13px; color: var(--muted); }
+
+.order-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.order-total {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 80px;
+  text-align: right;
+}
+
+.chevron { color: var(--muted); transition: transform 0.25s; }
+.chevron.open { transform: rotate(180deg); }
+
+.order-details {
+  border-top: 1px solid var(--border);
+  padding: 20px 24px;
+  background: rgba(255,255,255,0.01);
+}
+
+.order-items-list { margin-bottom: 20px; }
+.order-item-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.order-item-row:last-child { border-bottom: none; }
+.order-item-row img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; }
+.order-item-info { flex: 1; }
+.order-item-name { font-size: 14px; font-weight: 500; }
+.order-item-meta { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.order-item-sub { font-weight: 700; color: var(--gold); font-size: 14px; }
+
+.order-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.order-meta-item {}
+.meta-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 4px;
+}
+.meta-value { font-size: 13px; color: var(--text); }
+.meta-value.txn { font-family: monospace; font-size: 11px; color: var(--muted); word-break: break-all; }

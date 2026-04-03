@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const connectDB = require('./config/db');
 require('dotenv').config();
 
 const app = express();
@@ -26,7 +27,17 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerJsdoc(swaggerOption
 app.use('/api/comments', require('./routes/comment.routes'));
 app.get('/health', (req, res) => res.json({ service: 'comment-rating-service', status: 'UP', port: PORT }));
 
-app.listen(PORT, () => {
-  console.log(`✅ Comment & Rating Service running on http://localhost:${PORT}`);
-  console.log(`📚 Swagger docs at http://localhost:${PORT}/api-docs`);
-});
+async function startServer() {
+  try {
+    await connectDB();
+    app.listen(PORT, () => {
+      console.log(`✅ Comment & Rating Service running on http://localhost:${PORT}`);
+      console.log(`📚 Swagger docs at http://localhost:${PORT}/api-docs`);
+    });
+  } catch (err) {
+    console.error('❌ Failed to connect to Database:', err);
+    process.exit(1);
+  }
+}
+
+startServer();

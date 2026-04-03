@@ -1,77 +1,106 @@
-const db = require('../config/db');
+const mongoose = require('mongoose');
 
-const Inventory = {
+const inventorySchema = new mongoose.Schema({
+  product_id: { type: String, required: true, unique: true },
+  product_name: { type: String, default: 'Unknown' },
+  quantity: { type: Number, required: true, default: 0 },
+  reorder_level: { type: Number, default: 5 },
+  reserved: { type: Number, default: 0 }
+});
+
+const InventoryModel = mongoose.model('Inventory', inventorySchema);
+
+const inventoryLogSchema = new mongoose.Schema({
+  product_id: { type: String, required: true },
+  action: { type: String, required: true },
+  quantity: { type: Number, required: true },
+  reference: { type: String },
+  created_at: { type: Date, default: Date.now }
+});
+
+const InventoryLogModel = mongoose.model('InventoryLog', inventoryLogSchema);
+
+const mapId = (doc) => {
+  if (!doc) return doc;
+  doc.id = doc._id.toString();
+  return doc;
+};
+
+const InventoryService = {
   async getAll() {
-    const [rows] = await db.query('SELECT * FROM inventory');
-    return rows;
+    const items = await InventoryModel.find().lean();
+    return items.map(mapId);
   },
 
   async getByProductId(product_id) {
-    const [rows] = await db.query('SELECT * FROM inventory WHERE product_id = ?', [product_id]);
-    return rows[0];
+    const item = await InventoryModel.findOne({ product_id }).lean();
+    return mapId(item);
   },
 
-  async updateById(id, quantity, reorder_level) {
-    if (quantity !== undefined) {
-      await db.query('UPDATE inventory SET quantity = ? WHERE id = ?', [quantity, id]);
-    }
-    if (reorder_level !== undefined) {
-      await db.query('UPDATE inventory SET reorder_level = ? WHERE id = ?', [reorder_level, id]);
-    }
-    const [rows] = await db.query('SELECT * FROM inventory WHERE id = ?', [id]);
-    return rows[0] || null;
+  async updateByProductId(product_id, quantity, reorder_level) {
+    const updateData = {};
+    if (quantity !== undefined) updateData.quantity = quantity;
+    if (reorder_level !== undefined) updateData.reorder_level = reorder_level;
+    
+    const item = await InventoryModel.findOneAndUpdate({ product_id }, updateData, { new: true }).lean();
+    return mapId(item);
   },
 
-  async deleteById(id) {
-    const [rows] = await db.query('SELECT * FROM inventory WHERE id = ?', [id]);
-    const item = rows[0];
-    if (item) {
-      await db.query('DELETE FROM inventory WHERE id = ?', [id]);
-    }
-    return item || null;
+  async deleteByProductId(product_id) {
+    const item = await InventoryModel.findOneAndDelete({ product_id }).lean();
+    return mapId(item);
   },
 
   async createOrUpdate(product_id, product_name, quantity, reorder_level = 5) {
-    const existing = await this.getByProductId(product_id);
+    const existing = await InventoryModel.findOne({ product_id });
     if (existing) {
-      await db.query(
-        'UPDATE inventory SET quantity = quantity + ?, product_name = ? WHERE product_id = ?',
-        [quantity, product_name, product_id]
-      );
+      existing.quantity += quantity;
+      existing.product_name = product_name || existing.product_name;
+      await existing.save();
     } else {
-      await db.query(
-        'INSERT INTO inventory (product_id, product_name, quantity, reorder_level) VALUES (?, ?, ?, ?)',
-        [product_id, product_name, quantity, reorder_level]
-      );
+      await InventoryModel.create({
+        product_id,
+        product_name,
+        quantity,
+        reorder_level
+      });
     }
-    await db.query(
-      'INSERT INTO inventory_logs (product_id, action, quantity) VALUES (?, "restock", ?)',
-      [product_id, quantity]
-    );
-    return this.getByProductId(product_id);
+
+    await InventoryLogModel.create({
+      product_id,
+      action: 'restock',
+      quantity
+    });
+
+    return await this.getByProductId(product_id);
   },
 
   async deductStock(product_id, quantity, reference) {
-    const item = await this.getByProductId(product_id);
+    const item = await InventoryModel.findOne({ product_id });
     if (!item) throw new Error(`Product ${product_id} not found in inventory`);
+    
     const available = item.quantity - item.reserved;
     if (available < quantity) {
       throw new Error(`Insufficient stock. Available: ${available}, Requested: ${quantity}`);
     }
-    await db.query(
-      'UPDATE inventory SET quantity = quantity - ? WHERE product_id = ?',
-      [quantity, product_id]
-    );
-    await db.query(
-      'INSERT INTO inventory_logs (product_id, action, quantity, reference) VALUES (?, "deduct", ?, ?)',
-      [product_id, quantity, reference]
-    );
-    return this.getByProductId(product_id);
+
+    item.quantity -= quantity;
+    await item.save();
+
+    await InventoryLogModel.create({
+      product_id,
+      action: 'deduct',
+      quantity,
+      reference
+    });
+
+    return await this.getByProductId(product_id);
   },
 
   async checkStock(product_id, quantity) {
     const item = await this.getByProductId(product_id);
     if (!item) return { available: false, message: 'Product not found in inventory' };
+    
     const available = item.quantity - item.reserved;
     return {
       available: available >= quantity,
@@ -83,12 +112,12 @@ const Inventory = {
   },
 
   async getLogs(product_id) {
-    const [rows] = await db.query(
-      'SELECT * FROM inventory_logs WHERE product_id = ? ORDER BY created_at DESC LIMIT 50',
-      [product_id]
-    );
-    return rows;
+    const items = await InventoryLogModel.find({ product_id })
+      .sort({ created_at: -1 })
+      .limit(50)
+      .lean();
+    return items.map(mapId);
   }
 };
 
-module.exports = Inventory;
+module.exports = InventoryService;

@@ -113,7 +113,7 @@ order-service/.env       → DB_PASSWORD=your_mysql_password
 cd ecommerce
 mkdir -p logs
 chmod +x start-all.sh
-./start-all.sh
+cd
 ```
 
 ### Option B — Run each service individually

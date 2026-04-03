@@ -1,34 +1,56 @@
-const db = require('../config/db');
+const mongoose = require('mongoose');
+
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  description: { type: String, default: '' },
+  category: { type: String, default: '' },
+  image_url: { type: String, default: '' },
+  stock: { type: Number, default: 0 }
+}, { timestamps: true });
+
+const ProductModel = mongoose.model('Product', productSchema);
+
+const mapDoc = (doc) => {
+  if (!doc) return doc;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.id = obj._id.toString();
+  return obj;
+};
 
 const Product = {
   async getAll() {
-    const [rows] = await db.query('SELECT * FROM products');
-    return rows;
+    const products = await ProductModel.find().lean();
+    return products.map(p => ({ ...p, id: p._id.toString() }));
   },
 
   async getById(id) {
-    const [rows] = await db.query('SELECT * FROM products WHERE id = ?', [id]);
-    return rows[0];
+    if (!mongoose.isValidObjectId(id)) return null;
+    const product = await ProductModel.findById(id);
+    return product ? mapDoc(product) : null;
   },
 
   async create({ name, price, description, category, image_url, stock }) {
-    const [result] = await db.query(
-      'INSERT INTO products (name, price, description, category, image_url, stock) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, price, description, category, image_url, stock]
-    );
-    return { id: result.insertId, name, price, description, category, image_url, stock };
+    const product = await ProductModel.create({
+      name, price, description, category, image_url, stock
+    });
+    return mapDoc(product);
   },
 
   async update(id, { name, price, description, category, image_url, stock }) {
-    await db.query(
-      'UPDATE products SET name=?, price=?, description=?, category=?, image_url=?, stock=? WHERE id=?',
-      [name, price, description, category, image_url, stock, id]
+    if (!mongoose.isValidObjectId(id)) return null;
+    const product = await ProductModel.findByIdAndUpdate(
+      id,
+      { name, price, description, category, image_url, stock },
+      { new: true }
     );
-    return this.getById(id);
+    return product ? mapDoc(product) : null;
   },
 
   async delete(id) {
-    await db.query('DELETE FROM products WHERE id = ?', [id]);
+    if (!mongoose.isValidObjectId(id)) return null;
+    const product = await ProductModel.findByIdAndDelete(id);
+    if (!product) return null;
     return { message: 'Product deleted successfully' };
   }
 };

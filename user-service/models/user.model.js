@@ -1,40 +1,67 @@
-const db = require('../config/db');
+const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true },
+  phone: { type: String, default: '' },
+  address: { type: String, default: '' },
+  role: { type: String, default: 'customer' }
+}, { timestamps: true });
+
+const UserModel = mongoose.model('User', userSchema);
+
+const mapDoc = (doc) => {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.id = obj._id.toString();
+  delete obj.password; // never expose password
+  return obj;
+};
 
 const User = {
   async getAll() {
-    const [rows] = await db.query('SELECT id, name, email, phone, address, role, created_at FROM users');
-    return rows;
+    const users = await UserModel.find().lean();
+    return users.map(u => {
+      const { password, ...rest } = u;
+      return { ...rest, id: u._id.toString() };
+    });
   },
 
   async getById(id) {
-    const [rows] = await db.query(
-      'SELECT id, name, email, phone, address, role, created_at FROM users WHERE id = ?', [id]
-    );
-    return rows[0];
+    if (!mongoose.isValidObjectId(id)) return null;
+    const user = await UserModel.findById(id);
+    return user ? mapDoc(user) : null;
   },
 
   async getByEmail(email) {
-    const [rows] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    return rows[0];
+    // Returns full doc including password (needed for login comparison)
+    return await UserModel.findOne({ email: email.toLowerCase() });
   },
 
   async create({ name, email, password, phone, address }) {
     const hashed = await bcrypt.hash(password, 10);
-    const [result] = await db.query(
-      'INSERT INTO users (name, email, password, phone, address) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashed, phone, address]
-    );
-    return { id: result.insertId, name, email, phone, address, role: 'customer' };
+    const user = await UserModel.create({
+      name, email, password: hashed, phone, address
+    });
+    return mapDoc(user);
   },
 
   async update(id, { name, phone, address }) {
-    await db.query('UPDATE users SET name=?, phone=?, address=? WHERE id=?', [name, phone, address, id]);
-    return this.getById(id);
+    if (!mongoose.isValidObjectId(id)) return null;
+    const user = await UserModel.findByIdAndUpdate(
+      id,
+      { name, phone, address },
+      { new: true }
+    );
+    return user ? mapDoc(user) : null;
   },
 
   async delete(id) {
-    await db.query('DELETE FROM users WHERE id = ?', [id]);
+    if (!mongoose.isValidObjectId(id)) return null;
+    const user = await UserModel.findByIdAndDelete(id);
+    if (!user) return null;
     return { message: 'User deleted successfully' };
   }
 };

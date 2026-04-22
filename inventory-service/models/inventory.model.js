@@ -31,23 +31,53 @@ const Inventory = {
     return item || null;
   },
 
-  async createOrUpdate(product_id, product_name, quantity, reorder_level = 5) {
+  async createOrUpdate(product_id, product_name, quantity, reorder_level) {
     const existing = await this.getByProductId(product_id);
     if (existing) {
+      const nextReorderLevel = reorder_level !== undefined && reorder_level !== null
+        ? reorder_level
+        : existing.reorder_level;
+
       await db.query(
-        'UPDATE inventory SET quantity = quantity + ?, product_name = ? WHERE product_id = ?',
-        [quantity, product_name, product_id]
+        'UPDATE inventory SET quantity = quantity + ?, product_name = ?, reorder_level = ? WHERE product_id = ?',
+        [quantity, product_name, nextReorderLevel, product_id]
       );
     } else {
       await db.query(
         'INSERT INTO inventory (product_id, product_name, quantity, reorder_level) VALUES (?, ?, ?, ?)',
-        [product_id, product_name, quantity, reorder_level]
+        [product_id, product_name, quantity, reorder_level ?? 5]
       );
     }
     await db.query(
       'INSERT INTO inventory_logs (product_id, action, quantity) VALUES (?, "restock", ?)',
       [product_id, quantity]
     );
+    return this.getByProductId(product_id);
+  },
+
+  async upsertExact(product_id, product_name, quantity, reorder_level) {
+    const existing = await this.getByProductId(product_id);
+    if (existing) {
+      const nextReorderLevel = reorder_level !== undefined && reorder_level !== null
+        ? reorder_level
+        : existing.reorder_level;
+
+      await db.query(
+        'UPDATE inventory SET quantity = ?, product_name = ?, reorder_level = ? WHERE product_id = ?',
+        [quantity, product_name || existing.product_name, nextReorderLevel, product_id]
+      );
+    } else {
+      await db.query(
+        'INSERT INTO inventory (product_id, product_name, quantity, reorder_level) VALUES (?, ?, ?, ?)',
+        [product_id, product_name || `Product #${product_id}`, quantity, reorder_level ?? 5]
+      );
+    }
+
+    await db.query(
+      'INSERT INTO inventory_logs (product_id, action, quantity, reference) VALUES (?, "restock", ?, ?)',
+      [product_id, quantity, 'product-service-sync']
+    );
+
     return this.getByProductId(product_id);
   },
 

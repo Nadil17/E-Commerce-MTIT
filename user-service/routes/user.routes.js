@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/user.controller');
-const { authenticateToken, requireAdmin } = require('../middlewares/auth.middleware');
 
 /**
  * @swagger
@@ -13,7 +12,7 @@ const { authenticateToken, requireAdmin } = require('../middlewares/auth.middlew
  *       200:
  *         description: List of users
  */
-router.get('/', authenticateToken, requireAdmin, controller.getAll);
+router.get('/', controller.getAll);
 
 /**
  * @swagger
@@ -121,6 +120,6 @@ router.put('/:id', controller.update);
  *       200:
  *         description: User deleted
  */
-router.delete('/:id', authenticateToken, requireAdmin, controller.delete);
+router.delete('/:id', controller.delete);
 
 module.exports = router;

@@ -19,24 +19,11 @@ const Product = {
     return { id: result.insertId, name, price, description, category, image_url, stock };
   },
 
-  async update(id, payload) {
-    const allowedFields = ['name', 'price', 'description', 'category', 'image_url', 'stock'];
-    const fields = [];
-    const values = [];
-
-    allowedFields.forEach((key) => {
-      if (payload[key] !== undefined) {
-        fields.push(`${key} = ?`);
-        values.push(payload[key]);
-      }
-    });
-
-    if (fields.length === 0) {
-      return this.getById(id);
-    }
-
-    values.push(id);
-    await db.query(`UPDATE products SET ${fields.join(', ')} WHERE id = ?`, values);
+  async update(id, { name, price, description, category, image_url, stock }) {
+    await db.query(
+      'UPDATE products SET name=?, price=?, description=?, category=?, image_url=?, stock=? WHERE id=?',
+      [name, price, description, category, image_url, stock, id]
+    );
     return this.getById(id);
   },
 

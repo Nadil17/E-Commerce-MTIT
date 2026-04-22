@@ -20,9 +20,6 @@ echo -e "${NC}"
 echo -e "${YELLOW}  E-Commerce Microservices Platform${NC}"
 echo ""
 
-# Ensure logs directory exists before any output redirection
-mkdir -p logs
-
 SERVICES=(
   "product-service:3001"
   "user-service:3002"
@@ -55,6 +52,7 @@ done
 
 # Start API Gateway
 echo -e "  → api-gateway on :8080"
+mkdir -p logs
 (cd api-gateway && npm start > "../logs/api-gateway.log" 2>&1) &
 
 sleep 3

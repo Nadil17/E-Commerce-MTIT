@@ -82,7 +82,8 @@ const orderController = {
             inventoryErrors.push(`${item.product_name}: ${stockRes.data.data.message}`);
           }
         } catch (e) {
-          inventoryErrors.push(`${item.product_name}: inventory check failed (${e.message})`);
+          // If inventory service down, proceed with warning
+          console.warn(`Inventory check failed for product ${item.product_id}: ${e.message}`);
         }
       }
 
@@ -132,8 +133,9 @@ const orderController = {
           payment_status: 'paid',
           transaction_id: paymentResult.transaction_id
         });
-        // Deduct inventory (must succeed for all items)
-        const deductionErrors = [];
+        await Order.updateStatus(order.id, 'confirmed');
+
+        // Deduct inventory
         for (const item of orderItems) {
           try {
             await axios.post(`${INVENTORY_URL}/api/inventory/deduct`, {
@@ -142,36 +144,9 @@ const orderController = {
               reference: order.order_number
             });
           } catch (e) {
-            deductionErrors.push(`${item.product_name}: ${e.response?.data?.message || e.message}`);
+            console.warn(`Inventory deduct failed for product ${item.product_id}`);
           }
         }
-
-        if (deductionErrors.length > 0) {
-          try {
-            await axios.post(`${PAYMENT_URL}/api/payments/refund/${paymentResult.transaction_id}`);
-            await Order.updatePayment(order.id, {
-              payment_status: 'refunded',
-              transaction_id: paymentResult.transaction_id
-            });
-          } catch (refundErr) {
-            await Order.updatePayment(order.id, {
-              payment_status: 'paid',
-              transaction_id: paymentResult.transaction_id
-            });
-          }
-
-          await Order.updateStatus(order.id, 'cancelled');
-          const failedOrder = await Order.getById(order.id);
-
-          return res.status(409).json({
-            success: false,
-            message: 'Order cancelled because stock deduction failed',
-            errors: deductionErrors,
-            data: { order: failedOrder, payment: paymentResult }
-          });
-        }
-
-        await Order.updateStatus(order.id, 'confirmed');
 
         // Clear cart
         try {

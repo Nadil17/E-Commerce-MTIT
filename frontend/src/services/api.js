@@ -2,6 +2,14 @@ import axios from 'axios';
 
 const API = axios.create({ baseURL: '/api' });
 
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const productAPI = {
   getAll: () => API.get('/products'),
   getById: (id) => API.get(`/products/${id}`),
@@ -13,7 +21,9 @@ export const productAPI = {
 export const userAPI = {
   register: (data) => API.post('/users/register', data),
   login: (data) => API.post('/users/login', data),
+  getAll: () => API.get('/users'),
   getById: (id) => API.get(`/users/${id}`),
+  delete: (id) => API.delete(`/users/${id}`),
 };
 
 export const cartAPI = {

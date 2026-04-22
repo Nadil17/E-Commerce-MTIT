@@ -9,6 +9,7 @@ import OrdersPage from './pages/OrdersPage';
 import LoginPage from './pages/LoginPage';
 import AdminProductsPage from './pages/AdminProductsPage';
 import AdminInventoryPage from './pages/AdminInventoryPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import './App.css';
 
 export const AppContext = createContext(null);
@@ -21,14 +22,16 @@ function App() {
   });
   const [cartCount, setCartCount] = useState(0);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));
+    if (token) localStorage.setItem('token', token);
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     toast.success('Logged out');
   };
 
@@ -53,6 +56,7 @@ function App() {
             <Route path="/login"           element={<LoginPage />} />
             <Route path="/admin/products"  element={<AdminProductsPage />} />
             <Route path="/admin/inventory" element={<AdminInventoryPage />} />
+            <Route path="/admin/users"     element={<AdminUsersPage />} />
           </Routes>
         </main>
       </BrowserRouter>
@@ -78,6 +82,7 @@ function NavBar() {
           <>
             <Link to="/admin/products"  className={`nav-link ${isActive('/admin/products') ? 'active' : ''}`}>Manage Products</Link>
             <Link to="/admin/inventory" className={`nav-link ${isActive('/admin/inventory') ? 'active' : ''}`}>Manage Inventory</Link>
+            <Link to="/admin/users" className={`nav-link ${isActive('/admin/users') ? 'active' : ''}`}>Manage Users</Link>
           </>
         )}
       </div>

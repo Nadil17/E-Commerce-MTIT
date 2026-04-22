@@ -90,9 +90,32 @@ router.post('/', controller.create);
  *         required: true
  *         schema:
  *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: number
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               image_url:
+ *                 type: string
+ *               stock:
+ *                 type: integer
  *     responses:
  *       200:
  *         description: Product updated
+ *       400:
+ *         description: Invalid update payload
+ *       404:
+ *         description: Product not found
  */
 router.put('/:id', controller.update);
 

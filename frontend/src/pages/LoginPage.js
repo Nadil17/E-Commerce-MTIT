@@ -20,7 +20,7 @@ export default function LoginPage() {
     try {
       if (mode === 'login') {
         const res = await userAPI.login({ email: form.email, password: form.password });
-        login(res.data.data.user);
+        login(res.data.data.user, res.data.data.token);
         toast.success(`Welcome back, ${res.data.data.user.name}!`);
         navigate('/');
       } else {

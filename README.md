@@ -14,24 +14,21 @@
                                         ▼
                          ┌─────────────────────────────────┐
                          │         API GATEWAY              │
-                         │      (http://localhost:8080)     │
+                         │      (http://localhost:9090)     │
                          │  • http-proxy-middleware         │
                          │  • Rate limiting                 │
                          │  • Request logging               │
-                         │  • Swagger proxy /docs/*         │
+                         │  • Unified Swagger /api-docs     │
                          └──────────────┬──────────────────┘
-              ┌─────────────┬────────┬──┴──┬──────────┬──────────────┐
-              ▼             ▼        ▼     ▼          ▼              ▼
-        ┌──────────┐ ┌────────┐ ┌──────┐ ┌──────────┐ ┌─────────┐ ┌────────┐
-        │ Product  │ │  User  │ │ Cart │ │Inventory │ │ Payment │ │ Order  │
-        │ :3001    │ │ :3002  │ │:3003 │ │  :3004   │ │  :3005  │ │ :3006  │
-        └────┬─────┘ └────────┘ └──┬───┘ └────┬─────┘ └────┬────┘ └───┬────┘
-             │                     │           │             │          │
-        product_db             cart_db   inventory_db   payment_db  order_db
-             │                                            ▲    ▲        │
-             │                                            │    │   ┌────┘
-             └── Order Service calls ────────────────────┘    └───┘
-                 Cart → Inventory → Payment (REST via axios)
+              ┌──────────┬──────────┬───┴───┬──────────┬──────────┬──────────┐
+              ▼          ▼          ▼        ▼          ▼          ▼          ▼
+        ┌──────────┐ ┌────────┐ ┌──────┐ ┌──────────┐ ┌─────────┐ ┌──────┐ ┌────────┐
+        │ Product  │ │  User  │ │ Cart │ │Inventory │ │ Payment │ │Order │ │Comment │
+        │ :3001    │ │ :3002  │ │:3003 │ │  :3004   │ │  :3005  │ │:3006 │ │ :3007  │
+        └──────────┘ └────────┘ └──────┘ └──────────┘ └─────────┘ └──┬───┘ └────────┘
+                                                                       │
+                              Order Service orchestrates: ─────────────┘
+                              Cart → Inventory check → Payment → Deduct stock → Clear cart
 ```
 
 ---
@@ -39,26 +36,24 @@
 ## 🗂 Folder Structure
 
 ```
-ecommerce/
-├── api-gateway/
-│   ├── server.js          ← Express proxy gateway (port 8080)
+E-Commerce-MTIT/
+├── api-gateway/           ← Express proxy gateway (port 9090)
+│   ├── server.js
 │   ├── .env
 │   └── package.json
-├── product-service/
-│   ├── controllers/product.controller.js
-│   ├── routes/product.routes.js
-│   ├── models/product.model.js
+├── product-service/       ← Port 3001
+│   ├── controllers/
+│   ├── routes/
+│   ├── models/
 │   ├── config/db.js
-│   ├── config/schema.sql
-│   ├── server.js          ← Port 3001
-│   ├── .env
-│   └── package.json
+│   └── server.js
 ├── user-service/          ← Port 3002 (JWT auth)
-├── cart-service/          ← Port 3003 (talks to product-service)
+├── cart-service/          ← Port 3003
 ├── inventory-service/     ← Port 3004
 ├── payment-service/       ← Port 3005 (simulated)
 ├── order-service/         ← Port 3006 (orchestrator)
-├── frontend/              ← React app (port 3000, proxied to 8080)
+├── comment-rating-service/ ← Port 3007
+├── frontend/              ← React app (port 3000)
 ├── start-all.sh           ← Start everything at once
 └── README.md
 ```
@@ -68,57 +63,73 @@ ecommerce/
 ## ⚙️ Prerequisites
 
 - **Node.js** v16+
-- **MySQL** 8.0+ running locally
+- **MongoDB** running locally (default: `mongodb://localhost:27017`)
 - **npm** v8+
 
 ---
 
 ## 🗄️ Database Setup
 
-Run these SQL files in MySQL Workbench or the CLI:
+All services use **MongoDB**. No manual schema creation is required — Mongoose creates collections automatically on first run.
 
+Make sure MongoDB is running:
 ```bash
-mysql -u root -p < product-service/config/schema.sql
-mysql -u root -p < user-service/config/schema.sql
-mysql -u root -p < cart-service/config/schema.sql
-mysql -u root -p < inventory-service/config/schema.sql
-mysql -u root -p < payment-service/config/schema.sql
-mysql -u root -p < order-service/config/schema.sql
+# Windows
+net start MongoDB
+
+# Mac/Linux
+sudo systemctl start mongod
 ```
 
-This creates **6 separate databases**: `product_db`, `user_db`, `cart_db`, `inventory_db`, `payment_db`, `order_db`.
+Each service connects to its own database (auto-created):
+
+| Service | Database |
+|---------|----------|
+| product-service | `product_db` |
+| user-service | `user_db` |
+| cart-service | `cart_db` |
+| inventory-service | `inventory_db` |
+| payment-service | `payment_db` |
+| order-service | `order_db` |
+| comment-rating-service | `comment_db` |
 
 ---
 
 ## 🔑 Environment Variables
 
-Update the `DB_PASSWORD` in every `.env` file:
+Each service `.env` contains a `MONGO_URI`. The default works with a local MongoDB install:
 
 ```
-product-service/.env     → DB_PASSWORD=your_mysql_password
-user-service/.env        → DB_PASSWORD=your_mysql_password
-cart-service/.env        → DB_PASSWORD=your_mysql_password
-inventory-service/.env   → DB_PASSWORD=your_mysql_password
-payment-service/.env     → DB_PASSWORD=your_mysql_password
-order-service/.env       → DB_PASSWORD=your_mysql_password
+MONGO_URI=mongodb://localhost:27017/<service_db_name>
+PORT=<service_port>
+```
+
+The API gateway `.env` maps service URLs:
+```
+PORT=9090
+PRODUCT_SERVICE_URL=http://localhost:3001
+USER_SERVICE_URL=http://localhost:3002
+CART_SERVICE_URL=http://localhost:3003
+INVENTORY_SERVICE_URL=http://localhost:3004
+PAYMENT_SERVICE_URL=http://localhost:3005
+ORDER_SERVICE_URL=http://localhost:3006
+COMMENT_RATING_SERVICE_URL=http://localhost:3007
 ```
 
 ---
 
 ## 🚀 Installation & Running
 
-### Option A — Run all at once (Linux/Mac)
+### Option A — Run all at once (Linux/Mac/Git Bash)
 
 ```bash
-cd ecommerce
-mkdir -p logs
 chmod +x start-all.sh
-cd
+./start-all.sh
 ```
 
 ### Option B — Run each service individually
 
-Open **7 terminals**:
+Open **8 terminals**:
 
 ```bash
 # Terminal 1 — Product Service
@@ -139,7 +150,10 @@ cd payment-service && npm install && npm start
 # Terminal 6 — Order Service
 cd order-service && npm install && npm start
 
-# Terminal 7 — API Gateway
+# Terminal 7 — Comment & Rating Service
+cd comment-rating-service && npm install && npm start
+
+# Terminal 8 — API Gateway
 cd api-gateway && npm install && npm start
 ```
 
@@ -148,21 +162,21 @@ cd api-gateway && npm install && npm start
 ```bash
 cd frontend && npm install && npm start
 # Opens at http://localhost:3000
-# All API calls proxy through http://localhost:8080 (gateway)
 ```
 
 ---
 
 ## 🌐 Service URLs
 
-| Service | Direct URL | Via Gateway |
+| Service | Direct URL | Via Gateway (port 9090) |
 |---------|-----------|-------------|
-| Product | http://localhost:3001 | http://localhost:8080/api/products |
-| User | http://localhost:3002 | http://localhost:8080/api/users |
-| Cart | http://localhost:3003 | http://localhost:8080/api/cart |
-| Inventory | http://localhost:3004 | http://localhost:8080/api/inventory |
-| Payment | http://localhost:3005 | http://localhost:8080/api/payments |
-| Order | http://localhost:3006 | http://localhost:8080/api/orders |
+| Product | http://localhost:3001 | http://localhost:9090/api/products |
+| User | http://localhost:3002 | http://localhost:9090/api/users |
+| Cart | http://localhost:3003 | http://localhost:9090/api/cart |
+| Inventory | http://localhost:3004 | http://localhost:9090/api/inventory |
+| Payment | http://localhost:3005 | http://localhost:9090/api/payments |
+| Order | http://localhost:3006 | http://localhost:9090/api/orders |
+| Comment & Rating | http://localhost:3007 | http://localhost:9090/api/comments |
 
 ---
 
@@ -170,12 +184,14 @@ cd frontend && npm install && npm start
 
 | Service | Native URL | Via Gateway |
 |---------|-----------|-------------|
-| Product | http://localhost:3001/api-docs | http://localhost:8080/docs/products |
-| User | http://localhost:3002/api-docs | http://localhost:8080/docs/users |
-| Cart | http://localhost:3003/api-docs | http://localhost:8080/docs/cart |
-| Inventory | http://localhost:3004/api-docs | http://localhost:8080/docs/inventory |
-| Payment | http://localhost:3005/api-docs | http://localhost:8080/docs/payments |
-| Order | http://localhost:3006/api-docs | http://localhost:8080/docs/orders |
+| Product | http://localhost:3001/api-docs | — |
+| User | http://localhost:3002/api-docs | — |
+| Cart | http://localhost:3003/api-docs | — |
+| Inventory | http://localhost:3004/api-docs | — |
+| Payment | http://localhost:3005/api-docs | — |
+| Order | http://localhost:3006/api-docs | — |
+| Comment & Rating | http://localhost:3007/api-docs | — |
+| **All services (unified)** | — | **http://localhost:9090/api-docs** |
 
 ---
 
@@ -188,12 +204,12 @@ GET http://localhost:3001/api/products
 
 ### 2. Get all products (via gateway)
 ```
-GET http://localhost:8080/api/products
+GET http://localhost:9090/api/products
 ```
 
 ### 3. Register user
 ```
-POST http://localhost:8080/api/users/register
+POST http://localhost:9090/api/users/register
 Content-Type: application/json
 
 {
@@ -205,38 +221,38 @@ Content-Type: application/json
 
 ### 4. Login
 ```
-POST http://localhost:8080/api/users/login
+POST http://localhost:9090/api/users/login
 Content-Type: application/json
 
 {
-  "email": "admin@shop.com",
+  "email": "jane@example.com",
   "password": "password123"
 }
 ```
 
 ### 5. Add item to cart
 ```
-POST http://localhost:8080/api/cart/1/items
+POST http://localhost:9090/api/cart/<userId>/items
 Content-Type: application/json
 
 {
-  "product_id": 1,
+  "product_id": "<productId>",
   "quantity": 2
 }
 ```
 
 ### 6. View cart
 ```
-GET http://localhost:8080/api/cart/1
+GET http://localhost:9090/api/cart/<userId>
 ```
 
 ### 7. Place an order (full checkout flow)
 ```
-POST http://localhost:8080/api/orders
+POST http://localhost:9090/api/orders
 Content-Type: application/json
 
 {
-  "user_id": 1,
+  "user_id": "<userId>",
   "payment_method": "credit_card",
   "shipping_address": "123 Main St, Colombo 03, Sri Lanka"
 }
@@ -245,17 +261,31 @@ Content-Type: application/json
 
 ### 8. Check inventory
 ```
-GET http://localhost:8080/api/inventory/1/check?quantity=2
+GET http://localhost:9090/api/inventory/<productId>/check?quantity=2
 ```
 
 ### 9. Get order history
 ```
-GET http://localhost:8080/api/orders/user/1
+GET http://localhost:9090/api/orders/user/<userId>
 ```
 
 ### 10. Health check (all services)
 ```
-GET http://localhost:8080/health
+GET http://localhost:9090/health
+```
+
+### 11. Post a product comment/rating
+```
+POST http://localhost:9090/api/comments
+Content-Type: application/json
+
+{
+  "product_id": "<productId>",
+  "user_id": "<userId>",
+  "user_name": "Jane Doe",
+  "rating": 5,
+  "comment": "Excellent product!"
+}
 ```
 
 ---
@@ -263,7 +293,7 @@ GET http://localhost:8080/health
 ## 🔄 Service Communication Flow
 
 ```
-Client → API Gateway (8080)
+Client → API Gateway (9090)
             │
             ▼
      Order Service (3006)
@@ -272,13 +302,11 @@ Client → API Gateway (8080)
     ▼       ▼            ▼
  Cart    Inventory   Payment
  (3003)  (3004)      (3005)
-    │       │
-    └── axios HTTP calls (REST) ──┘
 ```
 
 1. **Order Service** calls **Cart Service** (`GET /api/cart/:userId`) to get items
-2. **Order Service** calls **Inventory Service** (`GET /api/inventory/:id/check`) per item
-3. Creates order record in `order_db`
+2. **Order Service** calls **Inventory Service** (`GET /api/inventory/:productId/check`) per item
+3. Creates order record in MongoDB
 4. **Order Service** calls **Payment Service** (`POST /api/payments/process`)
 5. On success: calls **Inventory Service** (`POST /api/inventory/deduct`)
 6. On success: calls **Cart Service** (`DELETE /api/cart/:userId/clear`)
@@ -287,17 +315,18 @@ Client → API Gateway (8080)
 
 ## 🛡️ API Gateway Role
 
-The gateway runs on port **8080** and eliminates the need to know individual service ports:
+The gateway runs on port **9090** and eliminates the need to know individual service ports:
 
 ```
-/api/products  → product-service (3001)
-/api/users     → user-service    (3002)
-/api/cart      → cart-service    (3003)
-/api/inventory → inventory-service (3004)
-/api/payments  → payment-service (3005)
-/api/orders    → order-service   (3006)
-/docs/*        → swagger of each service
-/health        → aggregated health of all services
+/api/products   → product-service       (3001)
+/api/users      → user-service          (3002)
+/api/cart       → cart-service          (3003)
+/api/inventory  → inventory-service     (3004)
+/api/payments   → payment-service       (3005)
+/api/orders     → order-service         (3006)
+/api/comments   → comment-rating-service (3007)
+/api-docs       → unified Swagger UI (all services)
+/health         → aggregated health of all services
 ```
 
 ---
@@ -311,21 +340,22 @@ The gateway runs on port **8080** and eliminates the need to know individual ser
 | Member 3 | Cart Service | Shopping cart, session management |
 | Member 4 | Inventory Service | Stock management, deduction logic |
 | Member 5 | Payment Service | Simulated payment gateway |
-| Member 6 | Order Service + API Gateway | Checkout orchestration, gateway routing |
+| Member 6 | Order Service | Checkout orchestration |
+| Member 7 | Comment & Rating Service + API Gateway | Reviews, ratings, gateway routing |
 
 ---
 
 ## 📝 Assignment Checklist
 
-- ✅ Microservice per team member (6 services)
-- ✅ Each service on separate port
-- ✅ Each service has own MySQL database
-- ✅ API Gateway with http-proxy-middleware (port 8080)
-- ✅ No multiple ports needed — all via gateway
-- ✅ Swagger `/api-docs` on each service
-- ✅ Swagger accessible via gateway `/docs/*`
+- ✅ Microservice per team member (7 services)
+- ✅ Each service on a separate port (3001–3007)
+- ✅ Each service has its own MongoDB database
+- ✅ API Gateway with http-proxy-middleware (port 9090)
+- ✅ No multiple ports needed — all accessed via gateway
+- ✅ Swagger `/api-docs` on each service (native URL)
+- ✅ Unified Swagger at gateway `/api-docs`
 - ✅ Service-to-service REST communication (axios)
-- ✅ Proper MVC folder structure
+- ✅ Proper MVC folder structure per service
 - ✅ Environment variables (.env)
 - ✅ Error handling on all endpoints
 - ✅ React frontend (connects only to gateway)

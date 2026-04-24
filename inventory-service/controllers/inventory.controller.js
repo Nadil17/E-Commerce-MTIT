@@ -82,6 +82,12 @@ const inventoryController = {
   async deductStock(req, res) {
     try {
       const { product_id, quantity, reference } = req.body;
+      if (!product_id || quantity === undefined) {
+        return res.status(400).json({ success: false, message: 'product_id and quantity are required' });
+      }
+      if (typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({ success: false, message: 'quantity must be a positive integer' });
+      }
       const item = await Inventory.deductStock(product_id, quantity, reference);
       res.json({ success: true, data: item });
     } catch (err) {

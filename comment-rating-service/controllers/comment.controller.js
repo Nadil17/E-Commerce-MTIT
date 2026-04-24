@@ -36,6 +36,9 @@ const commentController = {
       if (!product_id || !user_id || !rating) {
         return res.status(400).json({ success: false, message: 'product_id, user_id, and rating are required' });
       }
+      if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        return res.status(400).json({ success: false, message: 'rating must be a number between 1 and 5' });
+      }
       const result = await Comment.create({ product_id, user_id, user_name, rating, comment });
       res.status(201).json({ success: true, data: result });
     } catch (err) {
@@ -46,6 +49,9 @@ const commentController = {
   async update(req, res) {
     try {
       const { rating, comment } = req.body;
+      if (rating !== undefined && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+        return res.status(400).json({ success: false, message: 'rating must be a number between 1 and 5' });
+      }
       const result = await Comment.update(req.params.id, { rating, comment });
       if (!result) return res.status(404).json({ success: false, message: 'Comment not found' });
       res.json({ success: true, data: result });

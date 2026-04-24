@@ -18,6 +18,10 @@ const cartController = {
       if (!product_id) {
         return res.status(400).json({ success: false, message: 'product_id is required' });
       }
+      const qty = quantity === undefined ? 1 : quantity;
+      if (!Number.isInteger(qty) || qty < 1) {
+        return res.status(400).json({ success: false, message: 'quantity must be a positive integer' });
+      }
       // Fetch product details from product service
       let product_name = req.body.product_name;
       let product_price = req.body.product_price;
@@ -30,7 +34,7 @@ const cartController = {
           return res.status(400).json({ success: false, message: 'product_name and product_price required (product-service unavailable)' });
         }
       }
-      const cart = await Cart.addItem(userId, { product_id, product_name, product_price, quantity });
+      const cart = await Cart.addItem(userId, { product_id, product_name, product_price, quantity: qty });
       res.json({ success: true, data: cart });
     } catch (err) {
       res.status(500).json({ success: false, message: err.message });
@@ -49,6 +53,9 @@ const cartController = {
   async updateQuantity(req, res) {
     try {
       const { quantity } = req.body;
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({ success: false, message: 'quantity must be a positive integer' });
+      }
       const cart = await Cart.updateItemQuantity(req.params.userId, req.params.productId, quantity);
       res.json({ success: true, data: cart });
     } catch (err) {

@@ -14,7 +14,13 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: { title: 'Cart Service API', version: '1.0.0', description: 'Microservice for shopping cart management' },
-    servers: [{ url: `http://localhost:${PORT}` }],
+    servers: [{ url: `http://localhost:8080` }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
+      }
+    },
+    security: [{ bearerAuth: [] }],
   },
   apis: ['./routes/*.js'],
 };

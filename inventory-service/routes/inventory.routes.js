@@ -24,6 +24,8 @@ const controller = require('../controllers/inventory.controller');
  *             properties:
  *               product_id:
  *                 type: integer
+ *               product_name:
+ *                 type: string
  *               quantity:
  *                 type: integer
  *               reorder_level:

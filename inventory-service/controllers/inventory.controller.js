@@ -35,11 +35,11 @@ const inventoryController = {
 
   async create(req, res) {
     try {
-      const { product_id, quantity, reorder_level } = req.body;
+      const { product_id, product_name, quantity, reorder_level } = req.body;
       if (!product_id || !quantity) {
         return res.status(400).json({ success: false, message: 'product_id and quantity are required' });
       }
-      const item = await Inventory.createOrUpdate(product_id, 'Product', quantity, reorder_level ?? 10);
+      const item = await Inventory.createOrUpdate(product_id, product_name || `Product #${product_id}`, quantity, reorder_level ?? 5);
       if (shouldSyncProduct(req)) await syncProductStock(item.product_id, item.quantity);
       res.status(201).json({ success: true, data: item });
     } catch (err) {

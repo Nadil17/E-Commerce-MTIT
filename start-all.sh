@@ -41,6 +41,9 @@ done
 wait
 echo -e "${GREEN}✓ Dependencies installed${NC}\n"
 
+# Create logs directory
+mkdir -p logs
+
 # Start all microservices
 echo -e "${CYAN}🚀 Starting microservices...${NC}"
 for entry in "${SERVICES[@]}"; do
@@ -52,7 +55,6 @@ done
 
 # Start API Gateway
 echo -e "  → api-gateway on :9090"
-mkdir -p logs
 (cd api-gateway && npm start > "../logs/api-gateway.log" 2>&1) &
 
 sleep 3

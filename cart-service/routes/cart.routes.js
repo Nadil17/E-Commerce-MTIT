@@ -13,7 +13,7 @@ const controller = require('../controllers/cart.controller');
  *         name: userId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Cart with items and total
@@ -31,7 +31,7 @@ router.get('/:userId', controller.getCart);
  *         name: userId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -41,7 +41,7 @@ router.get('/:userId', controller.getCart);
  *             required: [product_id]
  *             properties:
  *               product_id:
- *                 type: integer
+ *                 type: string
  *               quantity:
  *                 type: integer
  *     responses:
@@ -61,12 +61,12 @@ router.post('/:userId/items', controller.addItem);
  *         name: userId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *       - in: path
  *         name: productId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -93,12 +93,12 @@ router.put('/:userId/items/:productId', controller.updateQuantity);
  *         name: userId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *       - in: path
  *         name: productId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Item removed
@@ -116,7 +116,7 @@ router.delete('/:userId/items/:productId', controller.removeItem);
  *         name: userId
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *     responses:
  *       200:
  *         description: Cart cleared

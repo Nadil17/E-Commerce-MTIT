@@ -18,7 +18,13 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Microservice for order management — orchestrates Cart, Inventory & Payment services',
     },
-    servers: [{ url: `http://localhost:${PORT}` }],
+    servers: [{ url: `http://localhost:8080` }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
+      }
+    },
+    security: [{ bearerAuth: [] }],
   },
   apis: ['./routes/*.js'],
 };

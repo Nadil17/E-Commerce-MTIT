@@ -18,7 +18,13 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Microservice for product comments and ratings',
     },
-    servers: [{ url: `http://localhost:${PORT}` }],
+    servers: [{ url: `http://localhost:8080` }],
+    components: {
+      securitySchemes: {
+        bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }
+      }
+    },
+    security: [{ bearerAuth: [] }],
   },
   apis: ['./routes/*.js'],
 };

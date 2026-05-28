@@ -170,12 +170,12 @@ cd frontend && npm install && npm start
 
 | Service | Native URL | Via Gateway |
 |---------|-----------|-------------|
-| Product | http://localhost:3001/api-docs | http://localhost:8080/docs/products |
-| User | http://localhost:3002/api-docs | http://localhost:8080/docs/users |
-| Cart | http://localhost:3003/api-docs | http://localhost:8080/docs/cart |
-| Inventory | http://localhost:3004/api-docs | http://localhost:8080/docs/inventory |
-| Payment | http://localhost:3005/api-docs | http://localhost:8080/docs/payments |
-| Order | http://localhost:3006/api-docs | http://localhost:8080/docs/orders |
+| Product | http://localhost:3001/api-docs | http://localhost:8080/docs/products/ |
+| User | http://localhost:3002/api-docs | http://localhost:8080/docs/users/ |
+| Cart | http://localhost:3003/api-docs | http://localhost:8080/docs/cart/ |
+| Inventory | http://localhost:3004/api-docs | http://localhost:8080/docs/inventory/ |
+| Payment | http://localhost:3005/api-docs | http://localhost:8080/docs/payments/ |
+| Order | http://localhost:3006/api-docs | http://localhost:8080/docs/orders/ |
 
 ---
 

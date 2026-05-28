@@ -189,4 +189,7 @@ router.post('/restock', controller.restock);
  */
 router.post('/deduct', controller.deductStock);
 
+// Internal sync endpoint used by product-service to keep stock consistent
+router.post('/sync', controller.syncStock);
+
 module.exports = router;

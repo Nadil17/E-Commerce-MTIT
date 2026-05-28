@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const controller = require('../controllers/user.controller');
+const { authenticateToken, requireAdmin } = require('../middlewares/auth.middleware');
 
 /**
  * @swagger
@@ -12,7 +13,7 @@ const controller = require('../controllers/user.controller');
  *       200:
  *         description: List of users
  */
-router.get('/', controller.getAll);
+router.get('/', authenticateToken, requireAdmin, controller.getAll);
 
 /**
  * @swagger
@@ -98,6 +99,23 @@ router.post('/login', controller.login);
  *         required: true
  *         schema:
  *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *               role:
+ *                 type: string
  *     responses:
  *       200:
  *         description: User updated
@@ -120,6 +138,6 @@ router.put('/:id', controller.update);
  *       200:
  *         description: User deleted
  */
-router.delete('/:id', controller.delete);
+router.delete('/:id', authenticateToken, requireAdmin, controller.delete);
 
 module.exports = router;

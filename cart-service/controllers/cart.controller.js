@@ -27,7 +27,8 @@ const cartController = {
         product_price = response.data.data.price;
       } catch (e) {
         if (!product_name || !product_price) {
-          return res.status(400).json({ success: false, message: 'product_name and product_price required (product-service unavailable)' });
+          const errMsg = e.response?.status === 404 ? 'Product not found in product-service' : 'product-service unavailable or failed';
+          return res.status(400).json({ success: false, message: `Cannot add item: ${errMsg}` });
         }
       }
       const cart = await Cart.addItem(userId, { product_id, product_name, product_price, quantity });

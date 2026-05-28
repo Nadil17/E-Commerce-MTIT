@@ -96,14 +96,66 @@ Object.entries(docsMap).forEach(([name, target]) => {
     createProxyMiddleware({
       target,
       changeOrigin: true,
-      pathRewrite: { [`^/docs/${name}`]: '/api-docs' },
-      on: {
-        error: (err, req, res) => {
-          res.status(503).send(`<h2>${name} swagger unavailable</h2>`);
+      pathRewrite: {
+        [`^/docs/${name}`]: '/api-docs'
+      },
+      onProxyRes: (proxyRes, req, res) => {
+        // Fix swagger-ui-express redirect: it sends Location: /api-docs/
+        // We need to rewrite it to /docs/{name}/
+        if (proxyRes.headers.location) {
+          proxyRes.headers.location = proxyRes.headers.location.replace(
+            '/api-docs', `/docs/${name}`
+          );
         }
+      },
+      onError: (err, req, res) => {
+        res.status(503).send(`<h2>${name} swagger unavailable</h2>`);
       }
     })
   );
+});
+
+// ── Unified API Docs landing page ─────────────────────────────────────────────
+app.get(['/api-docs', '/api-docs/'], (req, res) => {
+  const html = `
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusShop API Documentation</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+      .container { max-width: 800px; width: 90%; padding: 40px; }
+      h1 { text-align: center; font-size: 2rem; margin-bottom: 10px; color: #e94560; }
+      .subtitle { text-align: center; color: #888; margin-bottom: 30px; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+      .card { background: #16213e; border: 1px solid #0f3460; border-radius: 12px; padding: 24px; text-align: center; transition: transform 0.2s, box-shadow 0.2s; }
+      .card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(233,69,96,0.2); border-color: #e94560; }
+      .card a { text-decoration: none; color: #eee; display: block; }
+      .card .icon { font-size: 2rem; margin-bottom: 10px; }
+      .card .name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+      .card .port { font-size: 0.85rem; color: #888; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🛒 NexusShop API Docs</h1>
+      <p class="subtitle">Select a microservice to view its Swagger documentation</p>
+      <div class="grid">
+        <div class="card"><a href="/docs/products"><div class="icon">📦</div><div class="name">Products</div><div class="port">:3001</div></a></div>
+        <div class="card"><a href="/docs/users"><div class="icon">👤</div><div class="name">Users</div><div class="port">:3002</div></a></div>
+        <div class="card"><a href="/docs/cart"><div class="icon">🛒</div><div class="name">Cart</div><div class="port">:3003</div></a></div>
+        <div class="card"><a href="/docs/inventory"><div class="icon">📊</div><div class="name">Inventory</div><div class="port">:3004</div></a></div>
+        <div class="card"><a href="/docs/payments"><div class="icon">💳</div><div class="name">Payments</div><div class="port">:3005</div></a></div>
+        <div class="card"><a href="/docs/orders"><div class="icon">📋</div><div class="name">Orders</div><div class="port">:3006</div></a></div>
+        <div class="card"><a href="/docs/comments"><div class="icon">⭐</div><div class="name">Comments</div><div class="port">:3007</div></a></div>
+      </div>
+    </div>
+  </body>
+  </html>`;
+  res.send(html);
 });
 
 // ── Gateway root & health ─────────────────────────────────────────────────────
